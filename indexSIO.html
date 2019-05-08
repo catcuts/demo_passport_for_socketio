@@ -1,0 +1,29 @@
+<script src="/socket.io/socket.io.js"></script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>-->
+<script>
+    fetch('http://localhost:8090/login', {  // 先获取 token
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({username: 'admin', password: 'pass'})
+    }).then(response => {
+        response.json().then(res => {
+            var token = res.payload.token;
+            var socket = io.connect('http://localhost:8090/statistics?items=bedAmount');  // 指定统计项目
+            socket
+                .on('connect', function () {
+                    socket
+                        .emit('authenticate', {token})  // 带入 token 认证
+                        .on('authenticated', function () {  // 认证成功，订阅 update 消息
+                            socket.on('update', function (data) {
+                                console.log(`data: ${JSON.stringify(data)}`);
+                            });
+                        })
+                        .on('unauthorized', function (msg) {  // 认证失败提示信息
+                            console.log(`unauthorized: ${JSON.stringify(msg.data)}`);
+                        });
+                });
+        });
+    });
+</script>
